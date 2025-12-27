@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Matrix Loader Final</title>
+<style>
+html, body {
+    margin: 0;
+    padding: 0;
+    background: black;
+    overflow: hidden;
+}
+canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<script>
+const canvas = document.getElementById("c");
+const ctx = canvas.getContext("2d");
+
+function resize(){
+    canvas.width = innerWidth;
+    canvas.height = innerHeight;
+}
+addEventListener("resize", resize);
+resize();
+
+/* ===== CONFIG ===== */
+const GREEN = "#00ff66";
+const FONT = "monospace";
+const CHARSET = "アカサ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const PARTICLES = 1600;
+
+const MSG_START = "INICIANDO VIADIAÇÃO DO DISPOSITIVO";
+const MSG_DONE  = "VIADIAÇÃO DO DISPOSITIVO CONCLUÍDA";
+const MSG_H2    = "seu celula é gay bobado kkkkkkk";
+
+/* ===== MATRIX RAIN ===== */
+class Drop {
+    constructor(){ this.reset(); }
+    reset(){
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height;
+        this.speed = 2 + Math.random() * 4;
+        this.char = CHARSET[Math.floor(Math.random()*CHARSET.length)];
+    }
+    update(){
+        this.y += this.speed;
+        if(this.y > canvas.height){
+            this.y = -20;
+            this.x = Math.random() * canvas.width;
+        }
+    }
+    draw(){
+        ctx.fillText(this.char, this.x, this.y);
+    }
+}
+const drops = Array.from({length: PARTICLES}, () => new Drop());
+
+/* ===== TEXT UTILS ===== */
+function fitFont(text, maxWidth, base){
+    let size = base;
+    ctx.font = `bold ${size}px ${FONT}`;
+    while(ctx.measureText(text).width > maxWidth && size > 14){
+        size--;
+        ctx.font = `bold ${size}px ${FONT}`;
+    }
+    return size;
+}
+
+function drawText(text, y, size, alpha, bold = true){
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.font = `${bold ? "bold" : ""} ${size}px ${FONT}`;
+    ctx.textAlign = "center";
+    ctx.shadowColor = GREEN;
+    ctx.shadowBlur = 18;
+    ctx.fillStyle = GREEN;
+    ctx.fillText(text, canvas.width / 2, y);
+    ctx.restore();
+}
+
+/* ===== PROGRESS BAR ===== */
+function drawProgressBar(p, a){
+    const w = Math.min(420, canvas.width * 0.75);
+    const h = 14;
+    const x = canvas.width/2 - w/2;
+    const y = canvas.height/2 - 40;
+
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.strokeStyle = GREEN;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x, y, w, h);
+    ctx.fillStyle = GREEN;
+    ctx.fillRect(x, y, w * p, h);
+    ctx.restore();
+}
+
+/* ===== STATE ===== */
+let phase = 0;
+/*
+0 = chuva
+1 = loading
+2 = final (congela aqui)
+*/
+
+let progress = 0;
+let alpha = 0;
+
+/* ===== LOOP ===== */
+function animate(){
+    requestAnimationFrame(animate);
+
+    /* fundo */
+    ctx.fillStyle = "rgba(0,0,0,0.35)";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    /* chuva SEMPRE ativa */
+    ctx.fillStyle = GREEN;
+    ctx.font = "16px " + FONT;
+    drops.forEach(d => { d.update(); d.draw(); });
+
+    /* lógica das mensagens (executa uma vez) */
+    if(phase === 0){
+        phase = 1; // inicia automaticamente uma única vez
+    }
+
+    if(phase === 1){
+        alpha = Math.min(alpha + 0.02, 1);
+        progress = Math.min(progress + 0.003, 1);
+
+        const sizeStart = fitFont(MSG_START, canvas.width * 0.9, canvas.width * 0.035);
+        drawText(MSG_START, canvas.height/2 - 70, sizeStart, alpha);
+        drawProgressBar(progress, alpha);
+
+        if(progress >= 1){
+            alpha = 0;
+            phase = 2;
+        }
+    }
+
+    if(phase === 2){
+        alpha = Math.min(alpha + 0.015, 1);
+
+        const sizeH1 = fitFont(MSG_DONE, canvas.width * 0.9, canvas.width * 0.045);
+        const sizeH2 = fitFont(MSG_H2,  canvas.width * 0.9, canvas.width * 0.028);
+
+        /* H1 */
+        drawText(MSG_DONE, canvas.height/2, sizeH1, alpha, true);
+
+        /* H2 */
+        drawText(
+            MSG_H2,
+            canvas.height/2 + sizeH1 + 18,
+            sizeH2,
+            alpha * 0.95,
+            false
+        );
+
+        /* NÃO muda mais de fase */
+    }
+}
+
+animate();
+</script>
+</body>
+  </html>
